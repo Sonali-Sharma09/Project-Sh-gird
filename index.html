@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Shāgird - Galactic Adventure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: #000000;
+            /* BUG FIX: Changed overflow to auto to allow scrolling on small screens */
+            overflow: auto;
+        }
+        #starfield {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px; color: white;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .btn { padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: inline-block; text-align: center; border: 1px solid transparent; }
+        .btn-primary { background: linear-gradient(90deg, #4f46e5, #c026d3); box-shadow: 0 0 15px rgba(192, 38, 211, 0.6); }
+        .btn-primary:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(192, 38, 211, 0.8); }
+        .btn-secondary { background: linear-gradient(90deg, #10b981, #22d3ee); box-shadow: 0 0 15px rgba(34, 211, 238, 0.6); }
+        .btn-secondary:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(34, 211, 238, 0.8); }
+        .input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.3); margin-bottom: 1rem; background-color: rgba(0, 0, 0, 0.2); color: white; }
+        .input::placeholder { color: rgba(255, 255, 255, 0.5); }
+        .question-option { border: 2px solid rgba(255, 255, 255, 0.3); padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; }
+        .question-option:hover { background-color: rgba(255, 255, 255, 0.1); border-color: #c026d3; }
+        .question-option.selected { background-color: rgba(192, 38, 211, 0.3); border-color: #c026d3; font-weight: 600; }
+        .loader { border: 4px solid rgba(255,255,255,0.2); border-top: 4px solid #c026d3; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .title-glow { text-shadow: 0 0 10px #fff, 0 0 20px #c026d3, 0 0 30px #c026d3; animation: pulse 2s infinite alternate; }
+        @keyframes pulse { from { text-shadow: 0 0 10px #fff, 0 0 20px #c026d3, 0 0 30px #c026d3; } to { text-shadow: 0 0 20px #fff, 0 0 30px #818cf8, 0 0 40px #818cf8; } }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <canvas id="starfield"></canvas>
+    <div id="main-container" class="w-full max-w-2xl mx-auto z-10">
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold text-white tracking-widest title-glow">Project Shāgird</h1>
+            <p id="header-subtitle" class="text-lg text-gray-300 mt-2">Your AI-Powered Learning Companion</p>
+        </div>
+        <div id="views-container"></div>
+    </div>
+
+    <script>
+        // --- Starfield Animation ---
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        const stars = [];
+        for (let i = 0; i < 300; i++) { stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, radius: Math.random() * 1.5, speed: Math.random() * 0.5 + 0.1 }); }
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            stars.forEach(star => {
+                star.y += star.speed;
+                if (star.y > canvas.height) { star.y = 0; star.x = Math.random() * canvas.width; }
+                ctx.beginPath(); ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2); ctx.fill();
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- Firebase Config & App Logic ---
+        const firebaseConfig = { apiKey: "AIzaSyCTzahiPhOk36ypdGAKWYAixfHpWCWZBVI", authDomain: "project-shagird.firebaseapp.com", projectId: "project-shagird", storageBucket: "project-shagird.appspot.com", messagingSenderId: "738741531874", appId: "1:738741531874:web:5b8c9aaeb8b84e4cdf5abb" };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const API_BASE_URL = "http://127.0.0.1:5000";
+        const viewsContainer = document.getElementById('views-container');
+        const headerSubtitle = document.getElementById('header-subtitle');
+        let currentQuestions = [], userAnswers = {}, selectedSubject = '', currentUser = null, isLoginForm = true;
+
+        // --- View Templates ---
+        const loadingTemplate = () => `<div class="card p-8 text-center"><div class="loader"></div><p>Connecting to the Learning Universe...</p></div>`;
+        const authTemplate = () => `
+            <div class="card p-8">
+                <h2 class="text-2xl font-semibold mb-4 text-center">${isLoginForm ? 'Login to Your Console' : 'Create Your Profile'}</h2>
+                ${!isLoginForm ? '<input type="text" id="name" placeholder="Enter your name" class="input">' : ''}
+                <input type="email" id="email" placeholder="Enter your email" class="input">
+                <input type="password" id="password" placeholder="Enter your password" class="input">
+                <p id="auth-error" class="text-red-400 text-center mb-4 hidden"></p>
+                <button id="auth-btn" class="btn btn-primary w-full">${isLoginForm ? 'Login' : 'Sign Up'}</button>
+                <p class="text-center mt-4 text-gray-400"><a href="#" id="toggle-auth" class="text-cyan-400 hover:underline">${isLoginForm ? "Don't have an account? Sign Up" : "Already have an account? Login"}</a></p>
+            </div>`;
+        const subjectSelectionTemplate = (user) => {
+            const welcomeName = user.displayName || user.email;
+            return `<div class="card p-8 text-center"><div class="flex justify-between items-center mb-4"><p class="text-gray-300 text-sm">Welcome, Commander ${welcomeName}!</p><button id="logout-btn" class="text-sm text-red-400 hover:underline">Logout</button></div><h2 class="text-2xl font-semibold mb-4">Choose Your Mission</h2><div class="flex flex-col md:flex-row gap-4 justify-center"><button data-subject="maths" class="btn btn-primary subject-btn w-full md:w-auto">Mathematics</button><button data-subject="science" class="btn btn-secondary subject-btn w-full md:w-auto">Science</button></div><div class="mt-6"><button id="my-progress-btn" class="text-cyan-400 hover:underline">View Mission Logs</button></div></div>`;
+        }
+        const quizTemplate = (subject) => `
+            <div class="card p-8"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-semibold capitalize">${subject} Challenge</h2><button id="back-to-subjects-btn" class="text-sm text-cyan-400 hover:underline">Abort Mission</button></div><div id="quiz-questions" class="max-h-[60vh] overflow-y-auto pr-2">${loadingTemplate()}</div><button id="submit-quiz-btn" class="btn btn-primary w-full mt-6 hidden">Analyze Results</button><div id="quiz-error" class="text-red-400 mt-4 text-center hidden">Please answer all questions.</div></div>`;
+        const learningPathTemplate = () => `
+            <div class="card p-8"><h2 class="text-2xl font-semibold mb-2">AI Analysis Complete!</h2><div id="level-text" class="text-cyan-400 font-semibold mb-4">${loadingTemplate()}</div><div id="content-recommendation" class="hidden"><h3 id="rec-topic" class="text-xl font-semibold mb-2"></h3><p class="mb-4 bg-gray-900 bg-opacity-50 p-3 rounded-lg italic"><strong class="font-bold not-italic text-cyan-400">AI Reason:</strong> <span id="rec-reason" class="text-gray-300"></span></p><div style="position: relative; padding-bottom: 56.25%; height: 0;" class="rounded-lg overflow-hidden border-2 border-cyan-400"><iframe id="rec-video" src="" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div></div><button id="restart-btn" class="btn btn-primary w-full mt-8">Choose New Mission</button></div>`;
+        const progressTemplate = (results) => {
+            let resultsHtml = '<p class="text-gray-400 text-center">No mission logs found.</p>';
+            if (results && results.length > 0) {
+                resultsHtml = results.map(res => `<div class="p-4 border-b border-gray-700 last:border-b-0"><p class="font-bold text-lg capitalize">${res.subject}</p><p class="text-gray-300">Score: ${res.score}/${res.total} &nbsp;&nbsp; | &nbsp;&nbsp; Level: ${res.level}</p><p class="text-sm text-gray-500 mt-1">Log Date: ${res.timestamp || 'Just now'}</p></div>`).join('');
+            }
+            return `<div class="card p-6 sm:p-8"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-semibold">Mission Logs</h2><button id="back-to-subjects-btn" class="text-sm text-cyan-400 hover:underline">Back</button></div><div class="space-y-2 max-h-96 overflow-y-auto pr-2">${resultsHtml}</div></div>`;
+        };
+        
+        // --- App Logic ---
+        function renderView(content) { viewsContainer.innerHTML = content; }
+
+        auth.onAuthStateChanged(user => {
+            currentUser = user;
+            if (user) {
+                const welcomeName = user.displayName || user.email;
+                renderView(subjectSelectionTemplate(user));
+                headerSubtitle.textContent = `Welcome back, Commander ${welcomeName}!`;
+            } else {
+                isLoginForm = true;
+                renderView(authTemplate());
+                headerSubtitle.textContent = 'Your AI-Powered Learning Companion';
+            }
+        });
+        
+        viewsContainer.addEventListener('click', async (e) => {
+            e.preventDefault(); 
+            if (e.target.id === 'toggle-auth') { isLoginForm = !isLoginForm; renderView(authTemplate()); }
+            if (e.target.id === 'auth-btn') {
+                const email = viewsContainer.querySelector('#email').value;
+                const password = viewsContainer.querySelector('#password').value;
+                const authError = viewsContainer.querySelector('#auth-error');
+                authError.classList.add('hidden');
+                if (!email || !password) { authError.textContent = "Please enter all fields."; authError.classList.remove('hidden'); return; }
+                if (isLoginForm) {
+                    auth.signInWithEmailAndPassword(email, password).catch(error => { authError.textContent = error.message; authError.classList.remove('hidden'); });
+                } else {
+                    const name = viewsContainer.querySelector('#name').value;
+                    if (!name) { authError.textContent = "Please enter your name."; authError.classList.remove('hidden'); return; }
+                    auth.createUserWithEmailAndPassword(email, password).then(cred => cred.user.updateProfile({ displayName: name })).catch(error => { authError.textContent = error.message; authError.classList.remove('hidden'); });
+                }
+            }
+            if (e.target.id === 'logout-btn') auth.signOut();
+            if (e.target.id === 'back-to-subjects-btn' || e.target.id === 'restart-btn') renderView(subjectSelectionTemplate(currentUser));
+            if (e.target.classList.contains('subject-btn')) {
+                selectedSubject = e.target.getAttribute('data-subject');
+                userAnswers = {};
+                renderView(quizTemplate(selectedSubject));
+                try {
+                    const response = await fetch(`${API_BASE_URL}/quiz/${selectedSubject}`);
+                    const questions = await response.json();
+                    displayQuestions(questions);
+                } catch (error) { viewsContainer.querySelector('#quiz-questions').innerHTML = `<p class="text-red-400">Error connecting to server.</p>`; }
+            }
+            if (e.target.classList.contains('question-option')) {
+                const parent = e.target.parentElement;
+                const questionId = parent.getAttribute('data-question-id');
+                Array.from(parent.children).forEach(child => child.classList.remove('selected'));
+                e.target.classList.add('selected');
+                userAnswers[questionId] = e.target.getAttribute('data-value');
+            }
+            if (e.target.id === 'submit-quiz-btn') {
+                if (Object.keys(userAnswers).length !== currentQuestions.length) { viewsContainer.querySelector('#quiz-error').classList.remove('hidden'); return; }
+                renderView(learningPathTemplate());
+                try {
+                    const response = await fetch(`${API_BASE_URL}/submit`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ subject: selectedSubject, answers: userAnswers, userId: currentUser.uid }),
+                    });
+                    const result = await response.json();
+                    displayResult(result);
+                } catch (error) { viewsContainer.querySelector('#level-text').innerHTML = `<p class="text-red-400">Error getting result.</p>`; }
+            }
+            if (e.target.id === 'my-progress-btn') {
+                renderView(loadingTemplate());
+                try {
+                    const response = await fetch(`${API_BASE_URL}/my-progress/${currentUser.uid}`);
+                    const results = await response.json();
+                    renderView(progressTemplate(results));
+                } catch (error) { renderView(`<p class="text-red-400">Error fetching progress.</p>`); }
+            }
+        });
+
+        function displayQuestions(questions) {
+            currentQuestions = questions;
+            const quizQuestionsDiv = viewsContainer.querySelector('#quiz-questions');
+            quizQuestionsDiv.innerHTML = ''; 
+            questions.forEach((q) => {
+                const questionEl = document.createElement('div');
+                questionEl.classList.add('mb-6');
+                questionEl.innerHTML = `<p class="font-semibold mb-3">${q.question}</p><div class="grid grid-cols-1 md:grid-cols-2 gap-3" data-question-id="${q.id}">${q.options.map(opt => `<div class="question-option" data-value="${opt}">${opt}</div>`).join('')}</div>`;
+                quizQuestionsDiv.appendChild(questionEl);
+            });
+            viewsContainer.querySelector('#submit-quiz-btn').classList.remove('hidden');
+        }
+
+        function displayResult(result) {
+            const levelText = viewsContainer.querySelector('#level-text');
+            const contentRec = viewsContainer.querySelector('#content-recommendation');
+            levelText.textContent = `Analysis Complete - Level: ${result.level} (Score: ${result.score}/${result.total})`;
+            viewsContainer.querySelector('#rec-topic').textContent = `Recommended Topic: ${result.recommendation_topic}`;
+            viewsContainer.querySelector('#rec-reason').textContent = result.recommendation_reason;
+            viewsContainer.querySelector('#rec-video').src = result.video_url;
+            contentRec.classList.remove('hidden');
+        }
+        
+        // Initial Load
+        renderView(loadingTemplate());
+    </script>
+</body>
+</html>
