@@ -1,4 +1,4 @@
-# Project Shāgird - Backend Server (v3.2 - Render Ready)
+# Project Shāgird - Backend Server (v3.1 - Final Stable Version)
 # Connected to Firebase Firestore Database
 
 import firebase_admin
@@ -6,11 +6,9 @@ from firebase_admin import credentials, firestore
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import random
-import os # Added for Render port
 
 # --- Firebase Initialization ---
 try:
-    # This will use the serviceAccountKey.json file you uploaded to Render as a Secret File
     cred = credentials.Certificate("serviceAccountKey.json")
     if not firebase_admin._apps:
         firebase_admin.initialize_app(cred)
@@ -47,6 +45,11 @@ def get_ml_recommendation(score, total, subject):
 
 
 # --- API Endpoints ---
+@app.route('/')
+def home():
+    """Server's welcome message."""
+    return jsonify({"message": "Welcome to Project Shagird's Backend API! The server is live."})
+
 @app.route('/quiz/<subject_name>', methods=['GET'])
 def get_quiz(subject_name):
     if not db: return jsonify({"error": "Database not connected"}), 500
@@ -97,5 +100,4 @@ def get_my_progress(user_id):
         return jsonify({"error": f"Could not fetch progress: {e}"}), 500
 
 if __name__ == '__main__':
-    # This part is for local testing, Render will use the Procfile
     app.run(debug=True)
