@@ -1,0 +1,4 @@
+applications:
+- name: project-shagird-sonali  # Aap yahan koi bhi unique naam de sakti hain
+  memory: 128M
+  random-route: true
