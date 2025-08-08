@@ -30,18 +30,18 @@ def get_ml_recommendation(score, total, subject):
         performance_ratio = score / total
     
     if subject == 'maths':
-        if performance_ratio <= 0.25: return { "level": "Foundation", "topic": "Basics of Numbers & Operations", "reason": "Your basics seem weak. Let's start from the very beginning!", "video_url": "https://www.youtube.com/embed/5n_hI1gM3-k" }
-        elif performance_ratio <= 0.5: return { "level": "Beginner", "topic": "Introduction to Algebra", "reason": "You have some knowledge. This video will help you build a good foundation.", "video_url": "https://www.youtube.com/embed/5n_hI1gM3-k" }
-        elif performance_ratio <= 0.75: return { "level": "Intermediate", "topic": "Solving Linear Equations", "reason": "Great job! You are ready for the next level.", "video_url": "https://www.youtube.com/embed/pURwG_dO-6k" }
+        if performance_ratio <= 0.25: return { "level": "Foundation", "topic": "Basics of Numbers & Operations", "reason": "Your basics seem weak. Let's start from the very beginning!", "video_url": "https://www.youtube.com/embed/H20QOceuaOM" }
+        elif performance_ratio <= 0.5: return { "level": "Beginner", "topic": "Introduction to Algebra", "reason": "You have some knowledge. This video will help you build a good foundation.", "video_url": "https://www.youtube.com/embed/H20QOceuaOM" }
+        elif performance_ratio <= 0.75: return { "level": "Intermediate", "topic": "Solving Linear Equations", "reason": "Great job! You are ready for the next level.", "video_url": "https://www.youtube.com/embed/va1DT5T4lfI" }
         else: return { "level": "Advanced", "topic": "Introduction to Quadratic Equations", "reason": "Excellent work! Let's try a more advanced topic.", "video_url": "https://www.youtube.com/embed/iulx0z1lz8M" }
     
     elif subject == 'science':
-        if performance_ratio <= 0.25: return { "level": "Foundation", "topic": "What is Science?", "reason": "Your basics seem weak. Let's start from the very beginning!", "video_url": "https://www.youtube.com/embed/UPvgl_3pT6w" }
-        elif performance_ratio <= 0.5: return { "level": "Beginner", "topic": "What is Photosynthesis?", "reason": "You have some knowledge. This video will help you build a good foundation.", "video_url": "https://www.youtube.com/embed/UPvgl_3pT6w" }
-        elif performance_ratio <= 0.75: return { "level": "Intermediate", "topic": "Newton's Laws of Motion", "reason": "Great job! You are ready for the next level.", "video_url": "https://www.youtube.com/embed/k5kK8h2wA48" }
-        else: return { "level": "Advanced", "topic": "Basics of Electricity", "reason": "Excellent work! Let's try a more advanced topic.", "video_url": "https://www.youtube.com/embed/v1-5b_2fA6E" }
+        if performance_ratio <= 0.25: return { "level": "Foundation", "topic": "What is Science?", "reason": "Your basics seem weak. Let's start from the very beginning!", "video_url": "https://www.youtube.com/embed/hsLxjIHHHAY" }
+        elif performance_ratio <= 0.5: return { "level": "Beginner", "topic": "What is Photosynthesis?", "reason": "You have some knowledge. This video will help you build a good foundation.", "video_url": "https://www.youtube.com/embed/N1ZJe_-i0dg" }
+        elif performance_ratio <= 0.75: return { "level": "Intermediate", "topic": "Newton's Laws of Motion", "reason": "Great job! You are ready for the next level.", "video_url": "https://www.youtube.com/embed/OxA-bqDPK74" }
+        else: return { "level": "Advanced", "topic": "Basics of Electricity", "reason": "Excellent work! Let's try a more advanced topic.", "video_url": "https://www.youtube.com/embed/JY24andAvME" }
     
-    return { "level": "Beginner", "topic": "Introduction", "reason": "Let's get started!", "video_url": "https://www.youtube.com/embed/5n_hI1gM3-k" }
+    return { "level": "Beginner", "topic": "Introduction", "reason": "Let's get started!", "video_url": "https://www.youtube.com/embed/H20QOceuaOM" }
 
 
 # --- API Endpoints ---
@@ -101,3 +101,4 @@ def get_my_progress(user_id):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
