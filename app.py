@@ -1,40 +1,21 @@
-# Project Shāgird - Backend Server (v3.3 - Final Deployment Fix)
-# Connected to Firebase Firestore Database using Environment Variables
+# Project Shāgird - Backend Server (v3.2 - Render Ready)
+# Connected to Firebase Firestore Database
 
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import random
-import os
-import json
-
-# --- Smart Environment Variable Loading ---
-# This code now checks if it's running on the Render server.
-# It will only use dotenv on your local computer.
-if os.getenv('RENDER') is None:
-    from dotenv import load_dotenv
-    load_dotenv()
+import os # Added for Render port
 
 # --- Firebase Initialization ---
 try:
-    # Get the credentials from the environment variable (this works on Render)
-    cred_json_str = os.getenv('FIREBASE_CREDENTIALS')
-    if not cred_json_str:
-        raise ValueError("FIREBASE_CREDENTIALS environment variable not set.")
-    
-    # Convert the string back to a dictionary
-    cred_dict = json.loads(cred_json_str)
-    
-    # Initialize Firebase with the credentials dictionary
-    cred = credentials.Certificate(cred_dict)
-    
+    # This will use the serviceAccountKey.json file you uploaded to Render as a Secret File
+    cred = credentials.Certificate("serviceAccountKey.json")
     if not firebase_admin._apps:
         firebase_admin.initialize_app(cred)
-        
     db = firestore.client()
     print("Successfully connected to Firebase!")
-
 except Exception as e:
     print(f"Firebase connection failed: {e}")
     db = None
@@ -51,16 +32,16 @@ def get_ml_recommendation(score, total, subject):
         performance_ratio = score / total
     
     if subject == 'maths':
-        if performance_ratio <= 0.25: return { "level": "Foundation", "topic": "Basics of Numbers & Operations", "reason": "Your basics seem weak. Let's start from the very beginning!", "video_url": "https://www.youtube.com/embed/H20QOceuaOM" }
-        elif performance_ratio <= 0.5: return { "level": "Beginner", "topic": "Introduction to Algebra", "reason": "You have some knowledge. This video will help you build a good foundation.", "video_url": "https://www.youtube.com/embed/H20QOceuaOM" }
-        elif performance_ratio <= 0.75: return { "level": "Intermediate", "topic": "Solving Linear Equations", "reason": "Great job! You are ready for the next level.", "video_url": "https://www.youtube.com/embed/va1DT5T4lfI" }
+        if performance_ratio <= 0.25: return { "level": "Foundation", "topic": "Basics of Numbers & Operations", "reason": "Your basics seem weak. Let's start from the very beginning!", "video_url": "https://www.youtube.com/embed/5n_hI1gM3-k" }
+        elif performance_ratio <= 0.5: return { "level": "Beginner", "topic": "Introduction to Algebra", "reason": "You have some knowledge. This video will help you build a good foundation.", "video_url": "https://www.youtube.com/embed/5n_hI1gM3-k" }
+        elif performance_ratio <= 0.75: return { "level": "Intermediate", "topic": "Solving Linear Equations", "reason": "Great job! You are ready for the next level.", "video_url": "https://www.youtube.com/embed/pURwG_dO-6k" }
         else: return { "level": "Advanced", "topic": "Introduction to Quadratic Equations", "reason": "Excellent work! Let's try a more advanced topic.", "video_url": "https://www.youtube.com/embed/iulx0z1lz8M" }
     
     elif subject == 'science':
-        if performance_ratio <= 0.25: return { "level": "Foundation", "topic": "What is Science?", "reason": "Your basics seem weak. Let's start from the very beginning!", "video_url": "https://www.youtube.com/embed/hsLxjIHHHAY" }
-        elif performance_ratio <= 0.5: return { "level": "Beginner", "topic": "What is Photosynthesis?", "reason": "You have some knowledge. This video will help you build a good foundation.", "video_url": "https://www.youtube.com/embed/N1ZJe_-i0dg" }
-        elif performance_ratio <= 0.75: return { "level": "Intermediate", "topic": "Newton's Laws of Motion", "reason": "Great job! You are ready for the next level.", "video_url": "https://www.youtube.com/embed/OxA-bqDPK74" }
-        else: return { "level": "Advanced", "topic": "Basics of Electricity", "reason": "Excellent work! Let's try a more advanced topic.", "video_url": "https://www.youtube.com/embed/JY24andAvME" }
+        if performance_ratio <= 0.25: return { "level": "Foundation", "topic": "What is Science?", "reason": "Your basics seem weak. Let's start from the very beginning!", "video_url": "https://www.youtube.com/embed/UPvgl_3pT6w" }
+        elif performance_ratio <= 0.5: return { "level": "Beginner", "topic": "What is Photosynthesis?", "reason": "You have some knowledge. This video will help you build a good foundation.", "video_url": "https://www.youtube.com/embed/UPvgl_3pT6w" }
+        elif performance_ratio <= 0.75: return { "level": "Intermediate", "topic": "Newton's Laws of Motion", "reason": "Great job! You are ready for the next level.", "video_url": "https://www.youtube.com/embed/k5kK8h2wA48" }
+        else: return { "level": "Advanced", "topic": "Basics of Electricity", "reason": "Excellent work! Let's try a more advanced topic.", "video_url": "https://www.youtube.com/embed/v1-5b_2fA6E" }
     
     return { "level": "Beginner", "topic": "Introduction", "reason": "Let's get started!", "video_url": "https://www.youtube.com/embed/5n_hI1gM3-k" }
 
@@ -72,9 +53,7 @@ def get_quiz(subject_name):
     try:
         questions_ref = db.collection('quizzes').document(subject_name).collection('questions').stream()
         all_questions = [{'id': q.id, **q.to_dict()} for q in questions_ref]
-        # Ensure we don't try to sample more questions than available
-        sample_size = min(len(all_questions), 4)
-        return jsonify(random.sample(all_questions, sample_size))
+        return jsonify(random.sample(all_questions, min(len(all_questions), 4)))
     except Exception as e:
         return jsonify({"error": f"Could not fetch questions: {e}"}), 500
 
@@ -85,33 +64,19 @@ def submit_quiz():
         data = request.get_json()
         user_answers, subject, user_id = data.get('answers'), data.get('subject'), data.get('userId')
         if not all([user_answers, subject, user_id]): return jsonify({"error": "Invalid submission data"}), 400
-        
         questions_ref = db.collection('quizzes').document(subject).collection('questions').stream()
-        correct_answers = {q.id: q.to_dict().get('answer') for q in questions_ref if q.to_dict() and 'answer' in q.to_dict()}
-        
+        correct_answers = {}
+        for q in questions_ref:
+            q_data = q.to_dict()
+            if q_data and 'answer' in q_data: correct_answers[q.id] = q_data['answer']
         score = sum(1 for q_id, u_ans in user_answers.items() if q_id in correct_answers and str(correct_answers[q_id]) == str(u_ans))
         total_questions = len(user_answers)
-        
         recommendation = get_ml_recommendation(score, total_questions, subject)
-        
-        result_data = { 
-            "userId": user_id, 
-            "subject": subject, 
-            "score": score, 
-            "total": total_questions, 
-            "level": recommendation['level'], 
-            "recommendation_topic": recommendation['topic'], 
-            "recommendation_reason": recommendation['reason'], 
-            "video_url": recommendation['video_url'] 
-        }
-        
-        # Prepare data for Firestore (without video_url and with timestamp)
+        result_data = { "userId": user_id, "subject": subject, "score": score, "total": total_questions, "level": recommendation['level'], "recommendation_topic": recommendation['topic'], "recommendation_reason": recommendation['reason'], "video_url": recommendation['video_url'] }
         db_data = result_data.copy()
         db_data.pop("video_url", None)
         db_data["timestamp"] = firestore.SERVER_TIMESTAMP
-        
         db.collection('results').add(db_data)
-        
         return jsonify(result_data)
     except Exception as e:
         return jsonify({"error": f"Could not process submission: {e}"}), 500
@@ -120,31 +85,17 @@ def submit_quiz():
 def get_my_progress(user_id):
     if not db: return jsonify({"error": "Database not connected"}), 500
     try:
-        # Query results for the specific user
         progress_ref = db.collection('results').where('userId', '==', user_id).stream()
         user_results = []
         for result in progress_ref:
             res_data = result.to_dict()
-            # Safely format the timestamp if it exists
-            if 'timestamp' in res_data and res_data['timestamp']:
-                # Timestamps from Firestore are datetime objects
-                res_data['timestamp'] = res_data['timestamp'].strftime('%d %b %Y, %I:%M %p')
+            if 'timestamp' in res_data and res_data['timestamp']: res_data['timestamp'] = res_data['timestamp'].strftime('%d %b %Y, %I:%M %p')
             user_results.append(res_data)
-        
-        # Sort results by timestamp in descending order (newest first)
-        # We need a default value for sorting in case timestamp is missing
-        user_results.sort(key=lambda x: x.get('timestamp', '1970-01-01T00:00:00'), reverse=True)
-        
+        user_results.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         return jsonify(user_results)
     except Exception as e:
         return jsonify({"error": f"Could not fetch progress: {e}"}), 500
 
-# This part is for running the app on Render
-if __name__ != '__main__':
-    gunicorn_logger = logging.getLogger('gunicorn.error')
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
-
-# This part is for running the app locally on your computer
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # This part is for local testing, Render will use the Procfile
+    app.run(debug=True)
