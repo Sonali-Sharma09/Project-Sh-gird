@@ -1,4 +1,4 @@
-# Project Shāgird - Backend Server (v3.2 - Secure Version)
+# Project Shāgird - Backend Server (v3.3 - Final Deployment Fix)
 # Connected to Firebase Firestore Database using Environment Variables
 
 import firebase_admin
@@ -8,15 +8,17 @@ from flask_cors import CORS
 import random
 import os
 import json
-from dotenv import load_dotenv
 
-# --- Load Environment Variables ---
-# This line loads the variables from your .env file
-load_dotenv()
+# --- Smart Environment Variable Loading ---
+# This code now checks if it's running on the Render server.
+# It will only use dotenv on your local computer.
+if os.getenv('RENDER') is None:
+    from dotenv import load_dotenv
+    load_dotenv()
 
 # --- Firebase Initialization ---
 try:
-    # Get the credentials from the environment variable
+    # Get the credentials from the environment variable (this works on Render)
     cred_json_str = os.getenv('FIREBASE_CREDENTIALS')
     if not cred_json_str:
         raise ValueError("FIREBASE_CREDENTIALS environment variable not set.")
@@ -137,7 +139,12 @@ def get_my_progress(user_id):
     except Exception as e:
         return jsonify({"error": f"Could not fetch progress: {e}"}), 500
 
+# This part is for running the app on Render
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+
+# This part is for running the app locally on your computer
 if __name__ == '__main__':
-    # Use os.getenv to get port, default to 5000 if not set
-    port = int(os.getenv('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=5000)
